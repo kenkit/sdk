@@ -48,7 +48,10 @@ void BackoffTimer::backoff()
         base = 6000;
     }
 
-    delta = base + (dstime)((base / 2.0) * (PrnGen::genuint32(RAND_MAX)/(float)RAND_MAX));
+    uint32_t rand;
+    CryptoPP::OS_GenerateRandomBlock(false, (byte *)&rand, sizeof(rand));
+    delta = base + (dstime)((base / 2.0) * (rand/(float)RAND_MAX));
+
 }
 
 void BackoffTimer::backoff(dstime newdelta)
