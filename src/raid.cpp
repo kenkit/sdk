@@ -241,8 +241,6 @@ namespace mega
         return is_raid;
     }
 
-    std::string RaidBufferManager::emptyReturnString;
-
     const std::string& RaidBufferManager::tempURL(unsigned connectionNum)
     {
         if (isRaid())
@@ -256,6 +254,7 @@ namespace mega
         }
         else
         {
+            assert(false); // shouldn't happen, but don't crash
             return emptyReturnString;
         }
     }
