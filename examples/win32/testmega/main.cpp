@@ -65,8 +65,11 @@ public:
                 bool flag = request->getFlag();
                
 					MegaNode *file = request->getPublicMegaNode();
-                api->startDownload(file, ".");
-				
+				if(file->isFile())
+                	api->startDownload(file, file->getName());
+				else{
+                	std::cout << "Only file downloads supported!"<<std::endl;
+                 }
 				}
         	}
 			case MegaRequest::TYPE_FETCH_NODES:
@@ -183,7 +186,7 @@ int main()
 	}
 
 	//Login. You can get the result in the onRequestFinish callback of your listener
-	megaApi->login(MEGA_EMAIL, MEGA_PASSWORD);
+	//megaApi->login(MEGA_EMAIL, MEGA_PASSWORD);
 	megaApi->getPublicNode("https://mega.nz/#!p4kBXICT!XBPHpPxYRB0-P_w4NL9ITcKA0lIXxa9PXWyqDFh_WgU");	
 	//You can use the main thread to show a GUI or anything else. MegaApi runs in a background thread.
 	while(!listener.finished)
@@ -191,21 +194,6 @@ int main()
 		Sleep(1000);
 	}
 
-#ifdef HAVE_LIBUV
-	cout << "Do you want to enable the local HTTP server (y/n)?" << endl;
-	char c = getchar();
-	if (c == 'y' || c == 'Y')
-	{
-		megaApi->httpServerStart();
-		megaApi->httpServerSetRestrictedMode(MegaApi::HTTP_SERVER_ALLOW_ALL);
-		megaApi->httpServerEnableFileServer(true);
-		megaApi->httpServerEnableFolderServer(true);
-		cout << "You can browse your account now! http://127.0.0.1:4443/" << endl;
-	}
-#endif
 
-	cout << "Press any key to exit the app..." << endl;
-	getchar();
-	getchar();
 	return 0;
 }
