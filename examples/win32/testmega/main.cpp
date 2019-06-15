@@ -24,21 +24,20 @@
 #include <iostream>
 
 //ENTER YOUR CREDENTIALS HERE
-#define MEGA_EMAIL "EMAIL"
-#define MEGA_PASSWORD "PASSWORD"
+#define MEGA_EMAIL "kkituyi@yahoo.com"
+#define MEGA_PASSWORD "Biologist27$"
 
 //Get yours for free at https://mega.co.nz/#sdk
-#define APP_KEY "9gETCbhB"
+#define APP_KEY "RokyySSL"
 #define USER_AGENT "Example Win32 App"
 
 using namespace mega;
 using namespace std;
 
-class MyListener: public MegaListener
+class MyListener: public MegaListener,public MegaRequestListener
 {
 public:
 	bool finished;
-
 	MyListener()
 	{
 		finished = false;
@@ -56,9 +55,20 @@ public:
 		{
 			case MegaRequest::TYPE_LOGIN:
 			{
-				api->fetchNodes();
+				//api->fetchNodes();
+				
 				break;
 			}
+			case MegaRequest::TYPE_GET_PUBLIC_NODE:
+			{
+				if(e->getErrorCode() == MegaError::API_OK){
+                bool flag = request->getFlag();
+               
+					MegaNode *file = request->getPublicMegaNode();
+                api->startDownload(file, ".");
+				
+				}
+        	}
 			case MegaRequest::TYPE_FETCH_NODES:
 			{
 				cout << "***** Showing files/folders in the root folder:" << endl;
@@ -79,8 +89,9 @@ public:
 
 				delete list;
 
-				cout << "***** Uploading the image MEGA.png" << endl;
-				api->startUpload("MEGA.png", root);
+				/*cout << "***** Uploading the image MEGA.png" << endl;
+				api->startUpload("MEGA.png", root);*/
+				//api->downloadFile(, ".");
 				delete root;
 
 				break;
@@ -173,7 +184,7 @@ int main()
 
 	//Login. You can get the result in the onRequestFinish callback of your listener
 	megaApi->login(MEGA_EMAIL, MEGA_PASSWORD);
-	
+	megaApi->getPublicNode("https://mega.nz/#!p4kBXICT!XBPHpPxYRB0-P_w4NL9ITcKA0lIXxa9PXWyqDFh_WgU");	
 	//You can use the main thread to show a GUI or anything else. MegaApi runs in a background thread.
 	while(!listener.finished)
 	{
