@@ -38,70 +38,67 @@ class MyListener: public MegaListener,public MegaRequestListener
 {
 public:
 	bool finished;
-	MyListener()
-	{
-		finished = false;
-	}
+    std::string file_name,save_loc;
+    int request_type;
+    MyListener() { finished = false; }
 
-	virtual void onRequestFinish(MegaApi* api, MegaRequest *request, MegaError* e)
-	{
-		if(e->getErrorCode() != MegaError::API_OK)
-		{
-			finished = true;
-			return;
-		}
+    virtual void onRequestFinish(MegaApi *api, MegaRequest *request, MegaError *e) {
+      if (e->getErrorCode() != MegaError::API_OK) {
+        finished = true;
+        return;
+      }
 
-		switch(request->getType())
-		{
-			case MegaRequest::TYPE_LOGIN:
-			{
-				//api->fetchNodes();
-				
-				break;
+      switch (request->getType()) {
+        case MegaRequest::TYPE_LOGIN: {
+          // api->fetchNodes();
+
+          break;
+        }
+        case MegaRequest::TYPE_GET_PUBLIC_NODE: {
+          if (e->getErrorCode() == MegaError::API_OK) {
+            bool flag = request->getFlag();
+			if(request_type==1){
+            MegaNode *file = request->getPublicMegaNode();
+            if (file->isFile()) {
+              if (file_name.length() <= 0)
+                api->startDownload(file, std::string(save_loc + std::string(file->getName())).c_str());
+              else {
+                api->startDownload(file, std::string(save_loc + file_name).c_str());
+              }
+            } else {
+              std::cout << "Only file downloads supported!" << std::endl;
+            }
 			}
-			case MegaRequest::TYPE_GET_PUBLIC_NODE:
-			{
-				if(e->getErrorCode() == MegaError::API_OK){
-                bool flag = request->getFlag();
-               
-					MegaNode *file = request->getPublicMegaNode();
-				if(file->isFile())
-                	api->startDownload(file, file->getName());
-				else{
-                	std::cout << "Only file downloads supported!"<<std::endl;
-                 }
-				}
-        	}
-			case MegaRequest::TYPE_FETCH_NODES:
-			{
-				cout << "***** Showing files/folders in the root folder:" << endl;
-				MegaNode *root = api->getRootNode();
-				MegaNodeList *list = api->getChildren(root);
-			
-				for(int i=0; i < list->size(); i++)
-				{
-					MegaNode *node = list->get(i);
-					if(node->isFile())
-						cout << "*****   File:   ";
-					else
-						cout << "*****   Folder: ";
-				
-					cout << node->getName() << endl;
-				}
-				cout << "***** Done" << endl;
+          }
+        }
+        case MegaRequest::TYPE_FETCH_NODES: {
+          cout << "***** Showing files/folders in the root folder:" << endl;
+          MegaNode *root = api->getRootNode();
+          MegaNodeList *list = api->getChildren(root);
 
-				delete list;
+          for (int i = 0; i < list->size(); i++) {
+            MegaNode *node = list->get(i);
+            if (node->isFile())
+              cout << "*****   File:   ";
+            else
+              cout << "*****   Folder: ";
 
-				/*cout << "***** Uploading the image MEGA.png" << endl;
-				api->startUpload("MEGA.png", root);*/
-				//api->downloadFile(, ".");
-				delete root;
+            cout << node->getName() << endl;
+          }
+          cout << "***** Done" << endl;
 
-				break;
-			}
-			default:
-				break;
-		}
+          delete list;
+
+        if(request_type==2){
+          		api->startUpload(file_name.c_str(), root);
+		  }
+          delete root;
+
+          break;
+        }
+        default:
+          break;
+      }
 	}
 
 	//Currently, this callback is only valid for the request fetchNodes()
@@ -131,7 +128,7 @@ public:
 	
 	virtual void onTransferUpdate(MegaApi *api, MegaTransfer *transfer)
 	{
-		cout << "***** Transfer progress: " << transfer->getTransferredBytes() << "/" << transfer->getTotalBytes() << endl; 
+		cout << "***** Transfer progress: "<<transfer->getTransferString ()<<" :"  << transfer->getTransferredBytes() << "/" << transfer->getTotalBytes() << endl; 
 	}
 
 	virtual void onTransferTemporaryError(MegaApi *api, MegaTransfer *transfer, MegaError* error)
@@ -161,8 +158,30 @@ public:
 	}
 };
 
+void upload_file(/* struct shared_variables *global_variables,*/std::string parent, std::string current_file){
+	//Check the documentation of MegaApi to know how to enable local caching
+	MegaApi *megaApi = new MegaApi(APP_KEY, (const char *)NULL, USER_AGENT);
 
-int main()
+	//By default, logs are sent to stdout
+	//You can use MegaApi::setLoggerObject to receive SDK logs in your app
+	megaApi->setLogLevel(MegaApi::LOG_LEVEL_INFO);
+        megaApi->setMaxConnections(4);
+        MyListener listener;
+        listener.file_name =current_file;
+		listener.request_type = 2;
+		megaApi->addListener(&listener);
+    	megaApi->login(MEGA_EMAIL, MEGA_PASSWORD);
+                // You can use the main thread to show a GUI or anything else. MegaApi runs in a background thread.
+        while (!listener.finished) {
+                  Sleep(1000);
+	}
+	
+
+}
+void download_multi(/* /struct shared_variables* global_variables,*/
+    std::string url, std::string user_agent,
+    std::string cookies, std::string save_loc,
+    std::string file_name, int connections)
 {
 	//Check the documentation of MegaApi to know how to enable local caching
 	MegaApi *megaApi = new MegaApi(APP_KEY, (const char *)NULL, USER_AGENT);
@@ -170,24 +189,28 @@ int main()
 	//By default, logs are sent to stdout
 	//You can use MegaApi::setLoggerObject to receive SDK logs in your app
 	megaApi->setLogLevel(MegaApi::LOG_LEVEL_INFO);
-
-	MyListener listener;
-
-	//Listener to receive information about all request and transfers
+        megaApi->setMaxConnections(connections);
+        MyListener listener;
+        listener.file_name =file_name;
+        listener.save_loc = save_loc;
+        listener.request_type = 1;
+        //Listener to receive information about all request and transfers
 	//It is also possible to register a different listener per request/transfer
 	megaApi->addListener(&listener);
 
-	if(!strcmp(MEGA_EMAIL, "EMAIL"))
+	 /* if(!strcmp(MEGA_EMAIL, "EMAIL"))
 	{
 		cout << "Please enter your email/password at the top of main.cpp" << endl;
 		cout << "Press any key to exit the app..." << endl;
 		getchar();
 		exit(0);
-	}
+	}*/
 
 	//Login. You can get the result in the onRequestFinish callback of your listener
 	//megaApi->login(MEGA_EMAIL, MEGA_PASSWORD);
-	megaApi->getPublicNode("https://mega.nz/#!p4kBXICT!XBPHpPxYRB0-P_w4NL9ITcKA0lIXxa9PXWyqDFh_WgU");	
+	megaApi->getPublicNode(url.c_str());	
+	//should save the node somewhere in a class so we can download later.
+	
 	//You can use the main thread to show a GUI or anything else. MegaApi runs in a background thread.
 	while(!listener.finished)
 	{
@@ -195,5 +218,11 @@ int main()
 	}
 
 
-	return 0;
+	
+}
+int main()
+{
+  download_multi("https://mega.nz/#!p4kBXICT!XBPHpPxYRB0-P_w4NL9ITcKA0lIXxa9PXWyqDFh_WgU", "", "", ".", "", 1);
+
+  return 0;
 }
